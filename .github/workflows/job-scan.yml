@@ -1,0 +1,45 @@
+name: Weekly job scan
+
+# Runs the scanner weekly in the cloud (free), regenerates index.html, and
+# commits it. GitHub Pages then serves it at your bookmarkable URL.
+# No VPS, no email needed. (Email still works if you add the SMTP_* secrets.)
+
+on:
+  schedule:
+    # 21:00 UTC Sunday = Monday ~7am Melbourne.
+    - cron: "0 21 * * 0"
+  workflow_dispatch: {}   # run manually from the Actions tab
+
+permissions:
+  contents: write          # lets the job commit index.html + seen_jobs.json back
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install requests
+
+      - name: Run scan (writes index.html + seen_jobs.json)
+        env:
+          # Optional - only needed if you ALSO want an email. Leave unset to skip.
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        run: python job_scan.py
+
+      - name: Commit the refreshed page + state
+        run: |
+          git config user.name "job-scan-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add index.html seen_jobs.json || true
+          git commit -m "weekly refresh [skip ci]" || echo "no changes"
+          git push || echo "nothing to push"
