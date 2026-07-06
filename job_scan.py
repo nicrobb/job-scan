@@ -35,6 +35,10 @@ COMPANIES = [
     ("greenhouse",     "snowflakecomputing",  "Snowflake"),
     ("greenhouse",     "cloudflare",          "Cloudflare"),
     ("greenhouse",     "github",              "GitHub"),
+    # re-added with corrected adapters - the next run's log confirms which work:
+    ("ashby",          "mistral",             "Mistral AI"),   # AI lab, remote, E-3
+    ("greenhouse",     "canva",               "Canva"),        # was Lever (404); try Greenhouse
+    ("ashby",          "zapier",              "Zapier"),       # was Greenhouse (404); try Ashby
     # --- removed: tokens dead as of last scan (re-add if you find the new one) ---
     #   HubSpot: Greenhouse board 'hubspot' is now empty (moved ATS)
     #   Zapier / Mistral / Canva: returned 404 (token changed)
