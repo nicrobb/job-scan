@@ -348,6 +348,7 @@ footer{max-width:940px;margin:0 auto;padding:0 16px 40px;font-size:12px;color:va
 <div class="wrap"><div class="bar">
 <button data-f="review" class="active">To review</button><button data-f="applied">Applied</button>
 <button data-f="unsuitable">Not suitable</button><button data-f="all">All</button>
+<button id="sortBtn" style="margin-left:10px">&#11088; Sort: Best fit</button>
 <span class="counts" id="counts"></span></div><div id="list"></div></div>
 <div class="wrap" style="padding-top:0"><div class="group">
 <h2>Check manually (can't auto-scan)</h2>
@@ -362,23 +363,41 @@ footer{max-width:940px;margin:0 auto;padding:0 16px 40px;font-size:12px;color:va
 const JOBS=__JOBS__;const KEY="nic_job_status_v1";
 const load=()=>{try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return{}}};
 const save=s=>localStorage.setItem(KEY,JSON.stringify(s));
-let status=load(),filter="review";
+let status=load(),filter="review",sortMode="region";
 function setStatus(u,v){if(status[u]===v)delete status[u];else status[u]=v;save(status);render();}
-function render(){const list=document.getElementById("list");list.innerHTML="";
- const vis=JOBS.filter(j=>{const s=status[j.u];if(filter==="all")return true;if(filter==="applied")return s==="applied";if(filter==="unsuitable")return s==="unsuitable";return !s;});
- const groups={};vis.forEach(j=>{(groups[j.g]=groups[j.g]||[]).push(j)});
- Object.keys(groups).forEach(g=>{const gd=document.createElement("div");gd.className="group";gd.innerHTML="<h2>"+g+"</h2>";
-  groups[g].forEach(j=>{const s=status[j.u];const el=document.createElement("div");el.className="job"+(s?" done":"");
-   el.innerHTML='<div class="main"><div class="title">'+j.t+'<span class="tag">'+j.c+'</span><span class="tag">'+j.l+'</span></div>'+
-   '<div class="meta"><a class="apply" href="'+j.u+'" target="_blank" rel="noopener">Open posting ↗</a></div></div>'+
-   '<div class="acts"><button class="'+(s==="applied"?"appliedOn":"")+'" data-u="'+j.u+'" data-v="applied">✅ Applied</button>'+
-   '<button class="'+(s==="unsuitable"?"unsuitOn":"")+'" data-u="'+j.u+'" data-v="unsuitable">\u{1F6AB} Not suitable</button></div>';
-   gd.appendChild(el);});list.appendChild(gd);});
- const ap=JOBS.filter(j=>status[j.u]==="applied").length,un=JOBS.filter(j=>status[j.u]==="unsuitable").length,rv=JOBS.length-ap-un;
+function fitScore(j){var t=(j.t||"").toLowerCase(),g=j.g||"",s=0;
+ if(g.indexOf("Australia")>-1)s+=40;else if(g.indexOf("Remote - US")>-1)s+=22;else if(g.indexOf("Remote - other")>-1)s+=12;else s+=5;
+ var core=["ai deployment","deployment strategist","deployment engineer","deployment manager","solutions architect","solution architect","solutions engineer","solution engineer","solutions consultant","applied ai","ai adoption","ai enablement","ai solution","forward deployed"];
+ var good=["customer success","technical account","sales engineer","customer engineer","solution specialist","solution area","cloud solution","implementation","ai consultant"];
+ if(core.some(function(k){return t.indexOf(k)>-1}))s+=30;else if(good.some(function(k){return t.indexOf(k)>-1}))s+=18;else s+=6;
+ if(t.indexOf("deployment")>-1||t.indexOf(" ai")>-1||t.indexOf("ai ")>-1)s+=8;
+ if(/\bhead of\b|\bdirector\b|vice president|\bvp\b/.test(t))s-=25;
+ if(t.indexOf("principal")>-1)s-=8;
+ if(/manager/.test(t))s-=12;
+ if(/software engineer|ml engineer|machine learning|data engineer|security engineer/.test(t))s-=18;
+ var big=["Amazon","Microsoft","OpenAI","Anthropic","Google","Databricks","Stripe","Datadog"];
+ if(big.indexOf(j.c)>-1)s+=6;
+ return s;}
+function jobEl(j,rank){var s=status[j.u];var el=document.createElement("div");el.className="job"+(s?" done":"");
+ var pre=rank?'<span class="tag" style="background:#1f3a5f;color:#fff">#'+rank+'</span> ':'';
+ el.innerHTML='<div class="main"><div class="title">'+pre+j.t+'<span class="tag">'+j.c+'</span><span class="tag">'+j.l+'</span></div>'+
+ '<div class="meta"><a class="apply" href="'+j.u+'" target="_blank" rel="noopener">Open posting ↗</a></div></div>'+
+ '<div class="acts"><button class="'+(s==="applied"?"appliedOn":"")+'" data-u="'+j.u+'" data-v="applied">✅ Applied</button>'+
+ '<button class="'+(s==="unsuitable"?"unsuitOn":"")+'" data-u="'+j.u+'" data-v="unsuitable">\u{1F6AB} Not suitable</button></div>';return el;}
+function render(){var list=document.getElementById("list");list.innerHTML="";
+ var vis=JOBS.filter(function(j){var s=status[j.u];if(filter==="all")return true;if(filter==="applied")return s==="applied";if(filter==="unsuitable")return s==="unsuitable";return !s;});
+ if(sortMode==="fit"){var ranked=vis.slice().sort(function(a,b){return fitScore(b)-fitScore(a)});
+  var gd=document.createElement("div");gd.className="group";gd.innerHTML='<h2>⭐ Ranked best fit for you</h2>';
+  ranked.forEach(function(j,i){gd.appendChild(jobEl(j,i+1))});list.appendChild(gd);
+ }else{var groups={};vis.forEach(function(j){(groups[j.g]=groups[j.g]||[]).push(j)});
+  Object.keys(groups).forEach(function(g){var gd=document.createElement("div");gd.className="group";gd.innerHTML="<h2>"+g+"</h2>";
+   groups[g].forEach(function(j){gd.appendChild(jobEl(j))});list.appendChild(gd);});}
+ var ap=JOBS.filter(function(j){return status[j.u]==="applied"}).length,un=JOBS.filter(function(j){return status[j.u]==="unsuitable"}).length,rv=JOBS.length-ap-un;
  document.getElementById("counts").textContent=rv+" to review · "+ap+" applied · "+un+" passed · "+JOBS.length+" total";
  if(!vis.length)list.innerHTML='<p style="color:#667;padding:20px 0">Nothing here — switch filter above.</p>';}
 document.getElementById("list").addEventListener("click",e=>{const b=e.target.closest("button[data-u]");if(b)setStatus(b.dataset.u,b.dataset.v);});
 document.querySelectorAll(".bar button[data-f]").forEach(b=>b.addEventListener("click",()=>{filter=b.dataset.f;document.querySelectorAll(".bar button[data-f]").forEach(x=>x.classList.remove("active"));b.classList.add("active");render();}));
+document.getElementById("sortBtn").addEventListener("click",function(){sortMode=sortMode==="fit"?"region":"fit";this.textContent=sortMode==="fit"?"↩ Sort: By region":"⭐ Sort: Best fit";this.classList.toggle("active",sortMode==="fit");render();});
 render();
 </script></body></html>"""
 
