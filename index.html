@@ -43,17 +43,25 @@ const save=s=>localStorage.setItem(KEY,JSON.stringify(s));
 let status=load(),filter="review",sortMode="region";
 function setStatus(u,v){if(status[u]===v)delete status[u];else status[u]=v;save(status);render();}
 function fitScore(j){var t=(j.t||"").toLowerCase(),g=j.g||"",s=0;
- if(g.indexOf("Australia")>-1)s+=40;else if(g.indexOf("Remote - US")>-1)s+=22;else if(g.indexOf("Remote - other")>-1)s+=12;else s+=5;
- var core=["ai deployment","deployment strategist","deployment engineer","deployment manager","solutions architect","solution architect","solutions engineer","solution engineer","solutions consultant","applied ai","ai adoption","ai enablement","ai solution","forward deployed"];
- var good=["customer success","technical account","sales engineer","customer engineer","solution specialist","solution area","cloud solution","implementation","ai consultant"];
- if(core.some(function(k){return t.indexOf(k)>-1}))s+=30;else if(good.some(function(k){return t.indexOf(k)>-1}))s+=18;else s+=6;
- if(t.indexOf("deployment")>-1||t.indexOf(" ai")>-1||t.indexOf("ai ")>-1)s+=8;
- if(/\bhead of\b|\bdirector\b|vice president|\bvp\b/.test(t))s-=25;
- if(t.indexOf("principal")>-1)s-=8;
- if(/manager/.test(t))s-=12;
- if(/software engineer|ml engineer|machine learning|data engineer|security engineer/.test(t))s-=18;
- var big=["Amazon","Microsoft","OpenAI","Anthropic","Google","Databricks","Stripe","Datadog"];
- if(big.indexOf(j.c)>-1)s+=6;
+ // location: on-the-ground AU first
+ if(g.indexOf("Australia")>-1)s+=40;else if(g.indexOf("Remote - US")>-1)s+=20;else if(g.indexOf("Remote - other")>-1)s+=10;else s+=4;
+ // role fit - "best" = winnable for an operator + hands-on AI builder (lower experience gate)
+ var best=["customer success","adoption","enablement","ai consultant","solutions consultant","solution consultant","onboarding","implementation","associate","customer engineer","deployment strategist"];
+ var okc=["solutions engineer","solution engineer","sales engineer","technical account","solution specialist","solution area","cloud solution","applied ai","ai solution","ai deployment","solutions architect","solution architect","deployment engineer"];
+ if(best.some(function(k){return t.indexOf(k)>-1}))s+=32;else if(okc.some(function(k){return t.indexOf(k)>-1}))s+=16;else s+=4;
+ if(/adoption|enablement|applied ai|\bai\b/.test(t))s+=6;
+ // penalise roles that gate on experience you don't have yet
+ var icMgr=/customer success manager|account manager|product manager|program manager|technical account/.test(t);
+ if(/\bhead of\b|\bdirector\b|vice president|\bvp\b/.test(t))s-=40;
+ if(/\bprincipal\b|\bstaff\b/.test(t))s-=22;
+ if(!icMgr&&/\bmanager\b|managing\b/.test(t))s-=18;   // people-leadership
+ if(/\blead\b|\bleader\b/.test(t))s-=10;
+ if(/software engineer|ml engineer|machine learning|data engineer|security engineer/.test(t))s-=22;
+ if(/forward deployed engineer/.test(t))s-=10;
+ if(/\bsenior\b|\bsr\b/.test(t))s-=6;
+ // small nudge for E-3 sponsors (US-move path)
+ var big=["Amazon","Microsoft","OpenAI","Anthropic","Google","Databricks"];
+ if(big.indexOf(j.c)>-1)s+=3;
  return s;}
 function jobEl(j,rank){var s=status[j.u];var el=document.createElement("div");el.className="job"+(s?" done":"");
  var pre=rank?'<span class="tag" style="background:#1f3a5f;color:#fff">#'+rank+'</span> ':'';
@@ -64,7 +72,7 @@ function jobEl(j,rank){var s=status[j.u];var el=document.createElement("div");el
 function render(){var list=document.getElementById("list");list.innerHTML="";
  var vis=JOBS.filter(function(j){var s=status[j.u];if(filter==="all")return true;if(filter==="applied")return s==="applied";if(filter==="unsuitable")return s==="unsuitable";return !s;});
  if(sortMode==="fit"){var ranked=vis.slice().sort(function(a,b){return fitScore(b)-fitScore(a)});
-  var gd=document.createElement("div");gd.className="group";gd.innerHTML='<h2>⭐ Ranked best fit for you</h2>';
+  var gd=document.createElement("div");gd.className="group";gd.innerHTML='<h2>⭐ Best fit for you (realistic + winnable first)</h2>';
   ranked.forEach(function(j,i){gd.appendChild(jobEl(j,i+1))});list.appendChild(gd);
  }else{var groups={};vis.forEach(function(j){(groups[j.g]=groups[j.g]||[]).push(j)});
   Object.keys(groups).forEach(function(g){var gd=document.createElement("div");gd.className="group";gd.innerHTML="<h2>"+g+"</h2>";
