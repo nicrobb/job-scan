@@ -32,13 +32,12 @@ COMPANIES = [
     ("smartrecruiters","NEXTDC",     "NextDC"),
     # replacements for dead feeds - high-value US tech, remote/AU, E-3 sponsors:
     ("greenhouse",     "stripe",              "Stripe"),
-    ("greenhouse",     "snowflakecomputing",  "Snowflake"),
+    ("greenhouse",     "snowflake",           "Snowflake"),    # was snowflakecomputing (404)
     ("greenhouse",     "cloudflare",          "Cloudflare"),
-    ("greenhouse",     "github",              "GitHub"),
-    # re-added with corrected adapters - the next run's log confirms which work:
-    ("ashby",          "mistral",             "Mistral AI"),   # AI lab, remote, E-3
-    ("greenhouse",     "canva",               "Canva"),        # was Lever (404); try Greenhouse
-    ("ashby",          "zapier",              "Zapier"),       # was Greenhouse (404); try Ashby
+    ("ashby",          "mistral",             "Mistral AI"),   # works with includeCompensation=true
+    ("ashby",          "zapier",              "Zapier"),       # works (Ashby)
+    # Dropped - no working public feed found: GitHub (not on Greenhouse),
+    # Canva (not on Greenhouse/Lever). Watch these manually if wanted.
     # --- removed: tokens dead as of last scan (re-add if you find the new one) ---
     #   HubSpot: Greenhouse board 'hubspot' is now empty (moved ATS)
     #   Zapier / Mistral / Canva: returned 404 (token changed)
@@ -46,9 +45,10 @@ COMPANIES = [
     #   URL - boards.greenhouse.io/SLUG, jobs.ashbyhq.com/SLUG, jobs.lever.co/SLUG.
     # --- big US tech via their own JSON feeds (verify on first run) ---
     ("amazon",         "",           "Amazon"),          # confirmed working
-    ("google",         "",           "Google"),          # verify: may need headers
-    ("microsoft",      "",           "Microsoft"),        # verify: may need headers
     ("workday",        "zoom.wd5.myworkdayjobs.com|zoom|Zoom", "Zoom"),
+    # Disabled - endpoints changed: Google (API retired, 404), Microsoft (SSL host issue).
+    # ("google",    "", "Google"),
+    # ("microsoft", "", "Microsoft"),
     # Salesforce is on Workday too - find the tenant/site in its careers URL, e.g.:
     # ("workday", "salesforce.wd12.myworkdayjobs.com|salesforce|External_Career_Site", "Salesforce"),
     # --- other optional feeds ---
@@ -121,7 +121,7 @@ def fetch_greenhouse(token, name):
     return out
 
 def fetch_ashby(token, name):
-    url = f"https://api.ashbyhq.com/posting-api/job-board/{token}?includeCompensation=false"
+    url = f"https://api.ashbyhq.com/posting-api/job-board/{token}?includeCompensation=true"
     r = requests.get(url, headers=HEADERS, timeout=HTTP_TIMEOUT)
     r.raise_for_status()
     out = []
