@@ -349,6 +349,14 @@ footer{max-width:940px;margin:0 auto;padding:0 16px 40px;font-size:12px;color:va
 <button data-f="review" class="active">To review</button><button data-f="applied">Applied</button>
 <button data-f="unsuitable">Not suitable</button><button data-f="all">All</button>
 <span class="counts" id="counts"></span></div><div id="list"></div></div>
+<div class="wrap" style="padding-top:0"><div class="group">
+<h2>Check manually (can't auto-scan)</h2>
+<p style="font-size:14px;color:#555;margin:0 0 8px">These sit on platforms the scanner can't read. Bookmark them, or set a LinkedIn job alert so they email you.</p>
+<p style="font-size:15px;line-height:2">
+&#128269; <a href="https://www.google.com/about/careers/applications/jobs/results/?location=Australia&amp;q=solutions%20architect" target="_blank" rel="noopener">Google Careers &mdash; Australia search &#8599;</a><br>
+&#128269; <a href="https://careers.snowflake.com/us/en/search-results?keywords=solutions%20architect" target="_blank" rel="noopener">Snowflake Careers &#8599;</a> <span style="color:#888">(set Location = Australia)</span><br>
+&#128269; <a href="https://www.lifeatcanva.com/en/jobs/" target="_blank" rel="noopener">Canva jobs &#8599;</a> &middot; <a href="https://www.linkedin.com/company/canva/jobs/" target="_blank" rel="noopener">Canva on LinkedIn &#8599;</a>
+</p></div></div>
 <footer>Auto-generated weekly. Your ticks are stored in this browser and keyed by job link, so they persist as the list refreshes.</footer>
 <script>
 const JOBS=__JOBS__;const KEY="nic_job_status_v1";
