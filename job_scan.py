@@ -349,7 +349,9 @@ footer{max-width:940px;margin:0 auto;padding:0 16px 40px;font-size:12px;color:va
 <button data-f="review" class="active">To review</button><button data-f="applied">Applied</button>
 <button data-f="unsuitable">Not suitable</button><button data-f="all">All</button>
 <button id="sortBtn" style="margin-left:10px">&#11088; Sort: Best fit</button>
-<span class="counts" id="counts"></span></div><div id="list"></div></div>
+<span class="counts" id="counts"></span></div>
+<div class="bar" style="margin-top:0"><span style="font-size:12px;color:#667;align-self:center;margin-right:2px">Location:</span><button data-loc="any" class="active">All</button><button data-loc="vic">Melbourne / Geelong</button><button data-loc="remote">Remote</button><button data-loc="remoteus">Remote &mdash; US ($USD)</button></div>
+<div id="list"></div></div>
 <div class="wrap" style="padding-top:0"><div class="group">
 <h2>Check manually (can't auto-scan)</h2>
 <p style="font-size:14px;color:#555;margin:0 0 8px">These sit on platforms the scanner can't read. Bookmark them, or set a LinkedIn job alert so they email you.</p>
@@ -363,7 +365,7 @@ footer{max-width:940px;margin:0 auto;padding:0 16px 40px;font-size:12px;color:va
 const JOBS=__JOBS__;const KEY="nic_job_status_v1";
 const load=()=>{try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return{}}};
 const save=s=>localStorage.setItem(KEY,JSON.stringify(s));
-let status=load(),filter="review",sortMode="region";
+let status=load(),filter="review",sortMode="region",locFilter="any";
 function setStatus(u,v){if(status[u]===v)delete status[u];else status[u]=v;save(status);render();}
 function fitScore(j){var t=(j.t||"").toLowerCase(),g=j.g||"",s=0;
  // location: on-the-ground AU first
@@ -392,8 +394,9 @@ function jobEl(j,rank){var s=status[j.u];var el=document.createElement("div");el
  '<div class="meta"><a class="apply" href="'+j.u+'" target="_blank" rel="noopener">Open posting ↗</a></div></div>'+
  '<div class="acts"><button class="'+(s==="applied"?"appliedOn":"")+'" data-u="'+j.u+'" data-v="applied">✅ Applied</button>'+
  '<button class="'+(s==="unsuitable"?"unsuitOn":"")+'" data-u="'+j.u+'" data-v="unsuitable">\u{1F6AB} Not suitable</button></div>';return el;}
+function locMatch(j){var l=(j.l||"").toLowerCase(),g=j.g||"";if(locFilter==="any")return true;if(locFilter==="vic")return /melbourne|geelong|victoria|\bvic\b/.test(l);if(locFilter==="remote")return g.indexOf("Remote")>-1||l.indexOf("remote")>-1;if(locFilter==="remoteus")return g.indexOf("Remote - US")>-1;return true;}
 function render(){var list=document.getElementById("list");list.innerHTML="";
- var vis=JOBS.filter(function(j){var s=status[j.u];if(filter==="all")return true;if(filter==="applied")return s==="applied";if(filter==="unsuitable")return s==="unsuitable";return !s;});
+ var vis=JOBS.filter(function(j){if(!locMatch(j))return false;var s=status[j.u];if(filter==="all")return true;if(filter==="applied")return s==="applied";if(filter==="unsuitable")return s==="unsuitable";return !s;});
  if(sortMode==="fit"){var ranked=vis.slice().sort(function(a,b){return fitScore(b)-fitScore(a)});
   var gd=document.createElement("div");gd.className="group";gd.innerHTML='<h2>⭐ Best fit for you (realistic + winnable first)</h2>';
   ranked.forEach(function(j,i){gd.appendChild(jobEl(j,i+1))});list.appendChild(gd);
@@ -405,6 +408,7 @@ function render(){var list=document.getElementById("list");list.innerHTML="";
  if(!vis.length)list.innerHTML='<p style="color:#667;padding:20px 0">Nothing here — switch filter above.</p>';}
 document.getElementById("list").addEventListener("click",e=>{const b=e.target.closest("button[data-u]");if(b)setStatus(b.dataset.u,b.dataset.v);});
 document.querySelectorAll(".bar button[data-f]").forEach(b=>b.addEventListener("click",()=>{filter=b.dataset.f;document.querySelectorAll(".bar button[data-f]").forEach(x=>x.classList.remove("active"));b.classList.add("active");render();}));
+document.querySelectorAll(".bar button[data-loc]").forEach(b=>b.addEventListener("click",()=>{locFilter=b.dataset.loc;document.querySelectorAll(".bar button[data-loc]").forEach(x=>x.classList.remove("active"));b.classList.add("active");render();}));
 document.getElementById("sortBtn").addEventListener("click",function(){sortMode=sortMode==="fit"?"region":"fit";this.textContent=sortMode==="fit"?"↩ Sort: By region":"⭐ Sort: Best fit";this.classList.toggle("active",sortMode==="fit");render();});
 render();
 </script></body></html>"""
