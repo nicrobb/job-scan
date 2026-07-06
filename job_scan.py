@@ -34,7 +34,7 @@ COMPANIES = [
     ("greenhouse",     "stripe",              "Stripe"),
     ("greenhouse",     "snowflake",           "Snowflake"),    # was snowflakecomputing (404)
     ("greenhouse",     "cloudflare",          "Cloudflare"),
-    ("ashby",          "mistral",             "Mistral AI"),   # works with includeCompensation=true
+    ("ashby_gql",      "mistral",             "Mistral AI"),   # internal Ashby GraphQL
     ("ashby",          "zapier",              "Zapier"),       # works (Ashby)
     # Dropped - no working public feed found: GitHub (not on Greenhouse),
     # Canva (not on Greenhouse/Lever). Watch these manually if wanted.
@@ -45,10 +45,10 @@ COMPANIES = [
     #   URL - boards.greenhouse.io/SLUG, jobs.ashbyhq.com/SLUG, jobs.lever.co/SLUG.
     # --- big US tech via their own JSON feeds (verify on first run) ---
     ("amazon",         "",           "Amazon"),          # confirmed working
+    ("microsoft",      "",           "Microsoft"),        # new apply.careers.microsoft.com API
     ("workday",        "zoom.wd5.myworkdayjobs.com|zoom|Zoom", "Zoom"),
-    # Disabled - endpoints changed: Google (API retired, 404), Microsoft (SSL host issue).
+    # Google disabled - careers moved to an obfuscated internal RPC (no clean feed).
     # ("google",    "", "Google"),
-    # ("microsoft", "", "Microsoft"),
     # Salesforce is on Workday too - find the tenant/site in its careers URL, e.g.:
     # ("workday", "salesforce.wd12.myworkdayjobs.com|salesforce|External_Career_Site", "Salesforce"),
     # --- other optional feeds ---
@@ -199,21 +199,18 @@ def fetch_google(token, name):
     return out
 
 def fetch_microsoft(token, name):
-    hdr = dict(HEADERS); hdr["Accept"] = "application/json"
     out, seen = [], set()
     for q in SEARCH_QUERIES:
-        url = (f"https://gcsservices.careers.microsoft.com/search/api/v1/search?"
-               f"q={_q(q)}&lc=Australia&pg=1&pgSz=50&o=Relevance&flt=true")
-        r = requests.get(url, headers=hdr, timeout=HTTP_TIMEOUT)
+        url = (f"https://apply.careers.microsoft.com/api/pcsx/search?q={_q(q)}"
+               f"&location=Australia&domain=microsoft.com&hl=en&pg=1&pgSz=50")
+        r = requests.get(url, headers=HEADERS, timeout=HTTP_TIMEOUT)
         r.raise_for_status()
-        data = (r.json().get("operationResult", {}) or {}).get("result", {}) or {}
-        for j in data.get("jobs", []):
-            props = j.get("properties", {}) or {}
-            loc = ", ".join(props.get("locations", []) or [props.get("primaryLocation", "")])
-            jid = j.get("jobId", "")
-            if jid not in seen and _match(j.get("title"), loc):
+        for j in (r.json().get("data", {}) or {}).get("positions", []):
+            loc = ", ".join(j.get("locations", []) or [])
+            jid = j.get("id")
+            if jid not in seen and _match(j.get("name"), loc):
                 seen.add(jid)
-                out.append({"id": f"msft-{jid}", "title": j.get("title", ""),
+                out.append({"id": f"msft-{jid}", "title": j.get("name", ""),
                             "location": loc,
                             "url": f"https://jobs.careers.microsoft.com/global/en/job/{jid}",
                             "company": name})
@@ -237,10 +234,34 @@ def fetch_workday(token, name):
                             "location": loc, "url": f"https://{host}{path}", "company": name})
     return out
 
+def fetch_ashby_gql(token, name):
+    """Ashby internal GraphQL - works when the public posting API is disabled."""
+    url = "https://jobs.ashbyhq.com/api/non-user-graphql?op=ApiJobBoardWithTeams"
+    query = ("query ApiJobBoardWithTeams($organizationHostedJobsPageName: String!) "
+             "{ jobBoard: jobBoardWithTeams(organizationHostedJobsPageName: "
+             "$organizationHostedJobsPageName) { jobPostings { id title locationName "
+             "secondaryLocations { locationName } } } }")
+    body = {"operationName": "ApiJobBoardWithTeams",
+            "variables": {"organizationHostedJobsPageName": token}, "query": query}
+    hdr = {**HEADERS, "Content-Type": "application/json", "Accept": "application/json"}
+    r = requests.post(url, json=body, headers=hdr, timeout=HTTP_TIMEOUT)
+    r.raise_for_status()
+    board = ((r.json().get("data", {}) or {}).get("jobBoard", {}) or {})
+    out = []
+    for j in board.get("jobPostings", []):
+        locs = [j.get("locationName", "")] + [s.get("locationName", "") for s in (j.get("secondaryLocations") or [])]
+        loc = ", ".join(x for x in locs if x)
+        if _match(j.get("title"), loc):
+            out.append({"id": f"agql-{token}-{j.get('id')}", "title": j.get("title", ""),
+                        "location": loc, "url": f"https://jobs.ashbyhq.com/{token}/{j.get('id')}",
+                        "company": name})
+    return out
+
 ADAPTERS = {"greenhouse": fetch_greenhouse, "ashby": fetch_ashby,
             "lever": fetch_lever, "smartrecruiters": fetch_smartrecruiters,
             "amazon": fetch_amazon, "google": fetch_google,
-            "microsoft": fetch_microsoft, "workday": fetch_workday}
+            "microsoft": fetch_microsoft, "workday": fetch_workday,
+            "ashby_gql": fetch_ashby_gql}
 
 # ---------------------------------------------------------------------------
 def load_seen():
