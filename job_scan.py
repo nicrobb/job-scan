@@ -82,7 +82,7 @@ MIN_AUD = 140000  # for your reference only; ATS feeds rarely include salary
 # 3. EMAIL (all from env vars - set these on the VPS, see README)
 # ---------------------------------------------------------------------------
 SMTP_HOST = os.environ.get("SMTP_HOST", "")
-SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
+SMTP_PORT = int(os.environ.get("SMTP_PORT") or "587")
 SMTP_USER = os.environ.get("SMTP_USER", "")
 SMTP_PASS = os.environ.get("SMTP_PASS", "")
 EMAIL_FROM = os.environ.get("EMAIL_FROM", SMTP_USER)
