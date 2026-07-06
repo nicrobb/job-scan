@@ -32,8 +32,8 @@ COMPANIES = [
     ("smartrecruiters","NEXTDC",     "NextDC"),
     # replacements for dead feeds - high-value US tech, remote/AU, E-3 sponsors:
     ("greenhouse",     "stripe",              "Stripe"),
-    ("greenhouse",     "snowflake",           "Snowflake"),    # was snowflakecomputing (404)
     ("greenhouse",     "cloudflare",          "Cloudflare"),
+    # Snowflake dropped: on the Phenom People platform, no simple public feed.
     ("ashby_gql",      "mistral",             "Mistral AI"),   # internal Ashby GraphQL
     ("ashby",          "zapier",              "Zapier"),       # works (Ashby)
     # Dropped - no working public feed found: GitHub (not on Greenhouse),
@@ -64,7 +64,10 @@ SEARCH_QUERIES = ["solutions architect", "solutions engineer", "ai",
 # 2. WHAT COUNTS AS A MATCH
 # ---------------------------------------------------------------------------
 TITLE_KEYWORDS = [
-    "solutions engineer", "solutions architect", "solutions consultant",
+    # plural and singular "solution(s)" variants (Microsoft uses singular)
+    "solutions engineer", "solution engineer", "solutions architect",
+    "solution architect", "solutions consultant", "solution consultant",
+    "solution specialist", "solution area", "cloud solution", "solution sales",
     "sales engineer", "customer engineer", "forward deployed",
     "ai deployment", "deployment strategist", "deployment engineer",
     "deployment manager", "applied ai", "ai adoption", "ai enablement",
